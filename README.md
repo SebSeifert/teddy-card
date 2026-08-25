@@ -85,45 +85,38 @@ resources:
 
 ## 🔧 Configuration
 
-The card offers **two configuration modes** for maximum flexibility:
-
-### 🚀 Quick Setup (Auto-Discovery Mode) - **Recommended**
+### 🚀 Setup
 
 1. **Add the Card**: Dashboard → Edit → Add Card → "TeddyCloud Toniebox Card"
-2. **Enable Auto Mode**: Toggle the "Configuration Mode" switch to **ON** 
-3. **Select Entity**: Choose any Toniebox entity from the dropdown
-4. **Done!** ✨ Card automatically configures itself with your Toniebox information
-
-**Benefits**: No manual typing, instant setup, automatic entity discovery!
-
-### ⚙️ Advanced Setup (Manual Mode)
-
-Perfect for power users or when you need specific control:
-
-1. **Add the Card**: Dashboard → Edit → Add Card → "TeddyCloud Toniebox Card"
-2. **Keep Auto Mode OFF** (default for existing users)
-3. **Enter Details**:
-   - **Toniebox ID**: Found in your entity names (e.g., `12345678`)
-   - **Toniebox Name**: Your custom display name
-   - **Language**: English or German interface
-4. **Validate**: Check the entity validation section for missing entities
+2. **Select Entity**: Choose any Toniebox entity from the dropdown - the Toniebox ID
+   and name are derived from it
+3. **Pick the sections**: toggle the TeddyCloud server block and the extra details
+4. **Validate**: the editor lists every entity it discovered for that Toniebox
 
 ### 📝 YAML Configuration
 
 ```yaml
-# Auto-discovery mode (recommended)
 type: custom:teddy-card
-selection_mode: "auto"
 entity_source: "sensor.teddycloud_box_12345678_tag_valid"  # Any Toniebox entity
-language: "en"  # Optional: 'en' or 'de'
+language: "de"        # Optional: 'en' or 'de'
+show_server: true     # Optional: TeddyCloud server section (default: true)
+show_details: false   # Optional: tag UID, audio ID, ear buttons (default: false)
 
-# Manual mode (backward compatible)
+# Without an entity picker (backward compatible)
 type: custom:teddy-card
-selection_mode: "manual"  # Optional: defaults to manual
 toniebox_id: "12345678"
 toniebox_name: "My Toniebox"
-language: "en"  # Optional: 'en' or 'de'
+language: "en"
 ```
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `entity_source` | – | Any Toniebox entity; the Toniebox ID is derived from it |
+| `toniebox_id` | – | Manual alternative to `entity_source` |
+| `toniebox_name` | auto | Card headline; auto-detected from the entity |
+| `language` | `en` | `en` or `de` |
+| `show_server` | `true` | Render the TeddyCloud server section |
+| `show_details` | `false` | Render tag UID, audio ID, ear buttons and last seen |
 
 ### 🔄 Upgrading from v1.0.x
 
@@ -131,40 +124,40 @@ Existing configurations **work automatically** - no changes needed!
 - Your cards continue using manual mode
 - Switch to auto mode anytime for easier management
 
-## Required Entities
+## Entities
 
-The card expects the following entities to be available in Home Assistant:
+Since v0.4.0 the card **discovers** the entities of the selected Toniebox instead of
+relying on fixed entity IDs. Everything named `teddycloud_box_[ID]_*` is scanned and
+mapped onto the roles below, so extra sensors your TeddyCloud version provides are
+picked up automatically. Anything that is missing is simply left out of the card.
 
-### Toniebox-specific entities (using your Toniebox ID):
-- `image.teddycloud_box_[ID]_content_picture`
-- `sensor.teddycloud_box_[ID]_content_title`
-- `sensor.teddycloud_box_[ID]_tag_valid`
-- `binary_sensor.teddycloud_box_[ID]_charger`
-- `sensor.teddycloud_box_[ID]_volume_db`
-- `sensor.teddycloud_box_[ID]_volume_level`
-- `event.teddycloud_box_[ID]_volume_down`
-- `event.teddycloud_box_[ID]_volume_up`
-- `sensor.teddycloud_box_[ID]_content_audio_id`
+### Toniebox roles
 
-### Server entities:
-- `switch.teddycloud_server_cloud_cachecontent_cache_cloud_content_on_local_server`
-- `switch.teddycloud_server_cloud_enabled_generally_enable_cloud_operation`
+| Role | Matched by | Shown as |
+|------|-----------|----------|
+| Cover | `image.*content_picture` (or any box image) | Hero artwork + blurred backdrop |
+| Title | `sensor.*content_title` | Hero headline |
+| Chapter | `sensor.*chapter` / `*track` / `*episode`, or a `chapter`/`track` attribute on the title sensor | Line below the title |
+| Battery | `sensor.*battery*` | Battery tile incl. progress bar |
+| Charging | `binary_sensor.*charger*` | Header pill + battery tile |
+| Volume | `sensor.*volume_level` and `sensor.*volume_db` | Volume tile with level bars |
+| Tag UID / Audio ID / Ears / Last seen | `*tag*`, `*audio_id*`, `event.*volume_up`/`_down`, `*last_seen*` | Only with `show_details: true` |
+
+### Server entities
+
+Every `teddycloud_server_*` entity is used:
+
+- `switch.*` / `input_boolean.*` become toggles you can flip directly from the card
+- `sensor.*`, `binary_sensor.*` and `update.*` become status tiles (version, cached
+  content, connection state, …), collapsed to 6 tiles with a *Show all* link
 
 ## Card Layout
 
-The card displays information in the following sections:
-
-1. **Content Picture**: Current Tonie content image
-2. **Content Title**: Title of the currently active content
-3. **Toniebox Status**: 
-   - Tag UID
-   - Charging station status
-   - Volume levels (dB and percentage)
-   - Volume control buttons (ears)
-   - Content Audio ID
-4. **Server Settings**:
-   - Cache cloud content toggle
-   - Enable cloud operation toggle
+1. **Header**: Toniebox name and a charging pill
+2. **Hero**: cover artwork, title and current chapter
+3. **Tiles**: battery / charging state and volume level (incl. dB)
+4. **Details** (optional): tag UID, audio ID, ear buttons, last seen
+5. **TeddyCloud Server** (optional): status tiles and switches
 
 ## Language Support
 

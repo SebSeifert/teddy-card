@@ -25,7 +25,9 @@ export class TeddyCardEditor extends LitElement {
       toniebox_id: '',
       toniebox_name: '',
       language: 'en',
-      entity_source: ''
+      entity_source: '',
+      show_server: true,
+      show_details: false
     };
     this._availableDevices = [];
     this._selectedEntity = '';
@@ -33,12 +35,14 @@ export class TeddyCardEditor extends LitElement {
 
   setConfig(config) {
     // Set defaults for simplified entity-based configuration
-    this.config = { 
+    this.config = {
       toniebox_id: '',
       toniebox_name: '',
       language: 'en',
       entity_source: '',
-      ...config 
+      show_server: true,
+      show_details: false,
+      ...config
     };
     
     this._selectedEntity = this.config.entity_source || '';
@@ -80,6 +84,22 @@ export class TeddyCardEditor extends LitElement {
 
   get _entity_source() {
     return this.config?.entity_source || '';
+  }
+
+  get _show_server() {
+    return this.config?.show_server !== false;
+  }
+
+  get _show_details() {
+    return this.config?.show_details === true;
+  }
+
+  _switchChanged(ev) {
+    const configValue = ev.target.configValue;
+    if (!configValue) {
+      return;
+    }
+    this._updateConfig({ ...this.config, [configValue]: ev.target.checked });
   }
 
 
@@ -167,12 +187,11 @@ export class TeddyCardEditor extends LitElement {
     
     console.debug('Updating config:', validatedConfig);
     
-    const messageEvent = new Event('config-changed', {
+    this.dispatchEvent(new CustomEvent('config-changed', {
       detail: { config: validatedConfig },
       bubbles: true,
-      composed: true,
-    });
-    this.dispatchEvent(messageEvent);
+      composed: true
+    }));
   }
 
 
@@ -211,11 +230,12 @@ export class TeddyCardEditor extends LitElement {
 
   _renderEntityValidation() {
     if (!this._toniebox_id) {
-      return html`<div class="no-validation">Enter Toniebox ID to validate entities</div>`;
+      return html`<div class="no-validation">Select an entity to validate</div>`;
     }
 
     const validation = validateTonieboxEntities(this.hass, this._toniebox_id);
-    
+    const discovered = validation.discovered || [];
+
     return html`
       <div class="entity-validation">
         ${validation.valid ? html`
@@ -230,32 +250,18 @@ export class TeddyCardEditor extends LitElement {
             })}
           </ha-alert>
         `}
-        
-        <div class="entity-status">
-          <div class="found-entities">
-            <h5>✅ Available (${validation.foundCount})</h5>
-            <ul>
-              ${validation.available.map(entity => html`
-                <li><code>${entity.entityId}</code></li>
-              `)}
-            </ul>
-          </div>
-          
-          ${validation.missing.length > 0 ? html`
-            <div class="missing-entities">
-              <h5>❌ Missing (${validation.missing.length})</h5>
-              <ul>
-                ${validation.missing.map(entity => html`
-                  <li><code>${entity.entityId}</code></li>
-                `)}
-              </ul>
-            </div>
-          ` : ''}
+
+        <div class="discovered">
+          <h5>${discovered.length} entities</h5>
+          <ul>
+            ${discovered.map(entity => html`
+              <li><code>${entity.entityId}</code></li>
+            `)}
+          </ul>
         </div>
       </div>
     `;
   }
-
 
   render() {
     if (!this.hass) {
@@ -277,6 +283,30 @@ export class TeddyCardEditor extends LitElement {
             <mwc-list-item value="en">English</mwc-list-item>
             <mwc-list-item value="de">Deutsch</mwc-list-item>
           </ha-select>
+        </div>
+
+        <div class="form-group switch-row">
+          <ha-switch
+            .checked=${this._show_server}
+            .configValue=${'show_server'}
+            @change=${this._switchChanged}
+          ></ha-switch>
+          <div>
+            <div class="switch-label">${localize('config.show_server', this._language)}</div>
+            <div class="switch-help">${localize('config.show_server_description', this._language)}</div>
+          </div>
+        </div>
+
+        <div class="form-group switch-row">
+          <ha-switch
+            .checked=${this._show_details}
+            .configValue=${'show_details'}
+            @change=${this._switchChanged}
+          ></ha-switch>
+          <div>
+            <div class="switch-label">${localize('config.show_details', this._language)}</div>
+            <div class="switch-help">${localize('config.show_details_description', this._language)}</div>
+          </div>
         </div>
 
         <div class="validation-summary">
@@ -383,6 +413,45 @@ export class TeddyCardEditor extends LitElement {
 
       .device-properties div {
         margin-bottom: 4px;
+      }
+
+      .switch-row {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+      }
+
+      .switch-label {
+        font-size: 15px;
+        color: var(--primary-text-color);
+      }
+
+      .switch-help {
+        font-size: 13px;
+        color: var(--secondary-text-color);
+      }
+
+      .discovered {
+        margin-top: 12px;
+      }
+
+      .discovered h5 {
+        margin: 0 0 6px 0;
+        font-size: 13px;
+        color: var(--secondary-text-color);
+      }
+
+      .discovered ul {
+        margin: 0;
+        padding-left: 16px;
+        max-height: 180px;
+        overflow-y: auto;
+        font-size: 12px;
+      }
+
+      .discovered code {
+        font-family: 'Courier New', monospace;
+        color: var(--primary-text-color);
       }
 
       .entity-status {

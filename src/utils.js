@@ -2,6 +2,9 @@
  * Utility functions for TeddyCloud entity discovery and management
  */
 
+const BOX_PREFIX = 'teddycloud_box_';
+const SERVER_PREFIX = 'teddycloud_server_';
+
 /**
  * Extract Toniebox ID from an entity ID
  * @param {string} entityId - The entity ID to parse
@@ -11,27 +14,36 @@ export function extractBoxIdFromEntity(entityId) {
   if (!entityId || typeof entityId !== 'string') {
     return null;
   }
-  
+
   const match = entityId.match(/teddycloud_box_([^_]+)_/);
   return match ? match[1] : null;
 }
 
 /**
- * Check if an entity ID is a TeddyCloud entity
- * @param {string} entityId - The entity ID to check
- * @returns {boolean} True if this is a TeddyCloud entity
+ * Split an entity id into its domain and object id
+ * @param {string} entityId
+ * @returns {{domain: string, objectId: string}}
+ */
+export function splitEntityId(entityId) {
+  const idx = (entityId || '').indexOf('.');
+  if (idx < 0) {
+    return { domain: '', objectId: entityId || '' };
+  }
+  return { domain: entityId.slice(0, idx), objectId: entityId.slice(idx + 1) };
+}
+
+/**
+ * Check if an entity ID is a TeddyCloud box entity
  */
 export function isTeddyCloudEntity(entityId) {
-  return entityId && entityId.includes('teddycloud_box_');
+  return Boolean(entityId) && entityId.includes(BOX_PREFIX);
 }
 
 /**
  * Check if an entity ID is a TeddyCloud server entity
- * @param {string} entityId - The entity ID to check  
- * @returns {boolean} True if this is a TeddyCloud server entity
  */
 export function isTeddyCloudServerEntity(entityId) {
-  return entityId && entityId.includes('teddycloud_server_');
+  return Boolean(entityId) && entityId.includes(SERVER_PREFIX);
 }
 
 /**
@@ -44,28 +56,26 @@ export function extractDeviceName(entity, boxId) {
   if (!entity?.attributes) {
     return `Toniebox ${boxId}`;
   }
-  
-  // Try multiple attribute sources for device name
+
   const friendlyName = entity.attributes.friendly_name;
   const name = entity.attributes.name;
   const deviceName = entity.attributes.device_name;
-  
+
   if (friendlyName) {
-    // Remove common prefixes to get a clean name
     return friendlyName
       .replace(/^TeddyCloud Box \w+ /, '')
       .replace(/^Toniebox /, '')
       .replace(/^Box /, '') || `Toniebox ${boxId}`;
   }
-  
+
   if (deviceName) {
     return deviceName;
   }
-  
+
   if (name) {
     return name;
   }
-  
+
   return `Toniebox ${boxId}`;
 }
 
@@ -76,92 +86,205 @@ export function extractDeviceName(entity, boxId) {
  */
 export function findTeddyCloudDevices(hass) {
   const devices = new Map();
-  
+
   if (!hass?.states) {
     return devices;
   }
-  
-  // Group entities by box ID
+
   Object.keys(hass.states).forEach(entityId => {
-    if (isTeddyCloudEntity(entityId)) {
-      const boxId = extractBoxIdFromEntity(entityId);
-      if (boxId) {
-        if (!devices.has(boxId)) {
-          devices.set(boxId, {
-            id: boxId,
-            entities: [],
-            name: null,
-            sampleEntity: entityId // Store first entity for name extraction
-          });
-        }
-        devices.get(boxId).entities.push(entityId);
-      }
+    if (!isTeddyCloudEntity(entityId)) {
+      return;
     }
+    const boxId = extractBoxIdFromEntity(entityId);
+    if (!boxId) {
+      return;
+    }
+    if (!devices.has(boxId)) {
+      devices.set(boxId, {
+        id: boxId,
+        entities: [],
+        name: null,
+        sampleEntity: entityId
+      });
+    }
+    devices.get(boxId).entities.push(entityId);
   });
-  
-  // Extract device names from sample entities
+
   devices.forEach((device, boxId) => {
     const sampleEntity = hass.states[device.sampleEntity];
     device.name = extractDeviceName(sampleEntity, boxId);
   });
-  
+
   return devices;
 }
 
 /**
- * Get all expected entity IDs for a specific Toniebox
+ * Collect every entity that belongs to one Toniebox, keyed by the suffix
+ * following `teddycloud_box_<id>_`.
+ * @param {object} hass
+ * @param {string} boxId
+ * @returns {Array<{entityId: string, domain: string, suffix: string}>}
+ */
+export function getBoxEntities(hass, boxId) {
+  if (!hass?.states || !boxId) {
+    return [];
+  }
+
+  const marker = `${BOX_PREFIX}${boxId}_`;
+
+  return Object.keys(hass.states)
+    .filter(entityId => entityId.includes(marker))
+    .map(entityId => {
+      const { domain, objectId } = splitEntityId(entityId);
+      return {
+        entityId,
+        domain,
+        suffix: objectId.slice(objectId.indexOf(marker) + marker.length)
+      };
+    });
+}
+
+/**
+ * Collect every TeddyCloud server entity, keyed by the suffix following
+ * `teddycloud_server_`.
+ * @param {object} hass
+ * @returns {Array<{entityId: string, domain: string, suffix: string}>}
+ */
+export function getServerEntities(hass) {
+  if (!hass?.states) {
+    return [];
+  }
+
+  return Object.keys(hass.states)
+    .filter(isTeddyCloudServerEntity)
+    .map(entityId => {
+      const { domain, objectId } = splitEntityId(entityId);
+      return {
+        entityId,
+        domain,
+        suffix: objectId.slice(objectId.indexOf(SERVER_PREFIX) + SERVER_PREFIX.length)
+      };
+    })
+    .sort((a, b) => a.suffix.localeCompare(b.suffix));
+}
+
+/**
+ * Find the first entity whose suffix matches one of the given patterns.
+ * Patterns are tried in order, so put the most specific one first.
+ * @param {Array} entities - result of getBoxEntities/getServerEntities
+ * @param {Array<RegExp>} patterns
+ * @param {Array<string>} [domains] - optional domain allow list
+ * @returns {string|null} entity id
+ */
+export function matchEntity(entities, patterns, domains = null) {
+  for (const pattern of patterns) {
+    const hit = entities.find(entity =>
+      pattern.test(entity.suffix) && (!domains || domains.includes(entity.domain))
+    );
+    if (hit) {
+      return hit.entityId;
+    }
+  }
+  return null;
+}
+
+/**
+ * Resolve the entities the card actually renders, using discovery first and
+ * the historic naming scheme as a fallback.
+ * @param {object} hass
+ * @param {string} boxId
+ * @returns {object} map of role -> entity id (or null)
+ */
+export function resolveBoxEntities(hass, boxId) {
+  const found = getBoxEntities(hass, boxId);
+  const fallback = getExpectedEntities(boxId);
+
+  const pick = (patterns, domains, fallbackKey) =>
+    matchEntity(found, patterns, domains) ||
+    (hass?.states?.[fallback[fallbackKey]] ? fallback[fallbackKey] : null);
+
+  return {
+    contentPicture: pick([/^content_picture$/, /picture|image|cover/], ['image'], 'contentPicture'),
+    contentTitle: pick([/^content_title$/, /content.*title/, /title/], ['sensor'], 'contentTitle'),
+    chapter: matchEntity(found, [/chapter/, /track/, /episode/], ['sensor']),
+    contentSeries: matchEntity(found, [/series/, /^content_source$/], ['sensor']),
+    battery: matchEntity(found, [/battery_level/, /battery_percent/, /^battery$/, /battery/], ['sensor']),
+    charger: pick([/^charger$/, /charg/], ['binary_sensor'], 'charger'),
+    volumeLevel: pick([/^volume_level$/, /volume_level/], ['sensor', 'number'], 'volumeLevel'),
+    volumeDb: pick([/^volume_db$/, /volume_db/], ['sensor'], 'volumeDb'),
+    tagValid: pick([/^tag_valid$/, /tag/], ['sensor', 'binary_sensor'], 'tagValid'),
+    contentAudioId: pick([/^content_audio_id$/, /audio_id/], ['sensor'], 'contentAudioId'),
+    volumeDown: pick([/^volume_down$/], ['event'], 'volumeDown'),
+    volumeUp: pick([/^volume_up$/], ['event'], 'volumeUp'),
+    lastSeen: matchEntity(found, [/last_seen/, /last_online/, /last_contact/], ['sensor']),
+    all: found
+  };
+}
+
+/**
+ * Group the server entities into switches (controls) and read-only info.
+ * @param {object} hass
+ * @returns {{controls: Array, info: Array, all: Array}}
+ */
+export function resolveServerEntities(hass) {
+  const all = getServerEntities(hass);
+  const controls = all.filter(entity =>
+    ['switch', 'input_boolean', 'number', 'select', 'button'].includes(entity.domain)
+  );
+  const info = all.filter(entity =>
+    ['sensor', 'binary_sensor', 'update'].includes(entity.domain)
+  );
+
+  return { controls, info, all };
+}
+
+/**
+ * Get all expected entity IDs for a specific Toniebox (legacy naming scheme).
+ * Kept as a fallback for installations the discovery cannot resolve.
  * @param {string} boxId - The Toniebox ID
  * @returns {object} Object with all expected entity IDs
  */
 export function getExpectedEntities(boxId) {
   return {
-    // Image entities
-    contentPicture: `image.teddycloud_box_${boxId}_content_picture`,
-    
-    // Sensor entities  
-    contentTitle: `sensor.teddycloud_box_${boxId}_content_title`,
-    tagValid: `sensor.teddycloud_box_${boxId}_tag_valid`,
-    volumeDb: `sensor.teddycloud_box_${boxId}_volume_db`,
-    volumeLevel: `sensor.teddycloud_box_${boxId}_volume_level`,
-    contentAudioId: `sensor.teddycloud_box_${boxId}_content_audio_id`,
-    
-    // Binary sensor entities
-    charger: `binary_sensor.teddycloud_box_${boxId}_charger`,
-    
-    // Event entities
-    volumeDown: `event.teddycloud_box_${boxId}_volume_down`,
-    volumeUp: `event.teddycloud_box_${boxId}_volume_up`,
-    
-    // Server entities (shared across all boxes)
-    cacheContent: 'switch.teddycloud_server_cloud_cachecontent_cache_cloud_content_on_local_server',
-    enableCloud: 'switch.teddycloud_server_cloud_enabled_generally_enable_cloud_operation'
+    contentPicture: `image.${BOX_PREFIX}${boxId}_content_picture`,
+    contentTitle: `sensor.${BOX_PREFIX}${boxId}_content_title`,
+    tagValid: `sensor.${BOX_PREFIX}${boxId}_tag_valid`,
+    volumeDb: `sensor.${BOX_PREFIX}${boxId}_volume_db`,
+    volumeLevel: `sensor.${BOX_PREFIX}${boxId}_volume_level`,
+    contentAudioId: `sensor.${BOX_PREFIX}${boxId}_content_audio_id`,
+    charger: `binary_sensor.${BOX_PREFIX}${boxId}_charger`,
+    volumeDown: `event.${BOX_PREFIX}${boxId}_volume_down`,
+    volumeUp: `event.${BOX_PREFIX}${boxId}_volume_up`
   };
 }
 
 /**
- * Validate that all expected entities exist for a Toniebox
+ * Validate that the entities the card needs exist for a Toniebox
  * @param {object} hass - Home Assistant object
  * @param {string} boxId - The Toniebox ID to validate
  * @returns {object} Validation result with missing entities
  */
 export function validateTonieboxEntities(hass, boxId) {
-  const expected = getExpectedEntities(boxId);
+  const required = ['contentPicture', 'contentTitle', 'charger', 'volumeLevel'];
+  const resolved = resolveBoxEntities(hass, boxId);
+  const legacy = getExpectedEntities(boxId);
   const missing = [];
   const available = [];
-  
-  Object.entries(expected).forEach(([key, entityId]) => {
-    if (hass?.states?.[entityId]) {
-      available.push({ key, entityId });
+
+  required.forEach(key => {
+    if (resolved[key]) {
+      available.push({ key, entityId: resolved[key] });
     } else {
-      missing.push({ key, entityId });
+      missing.push({ key, entityId: legacy[key] || key });
     }
   });
-  
+
   return {
     valid: missing.length === 0,
     missing,
     available,
-    totalExpected: Object.keys(expected).length,
+    discovered: resolved.all,
+    totalExpected: required.length,
     foundCount: available.length
   };
 }
@@ -175,7 +298,7 @@ export function getSuggestedEntities(hass) {
   if (!hass?.states) {
     return [];
   }
-  
+
   return Object.keys(hass.states)
     .filter(entityId => isTeddyCloudEntity(entityId))
     .map(entityId => {
@@ -184,7 +307,7 @@ export function getSuggestedEntities(hass) {
       return {
         value: entityId,
         label: `${extractDeviceName(entity, boxId)} (${entity.attributes?.friendly_name || entityId})`,
-        boxId: boxId
+        boxId
       };
     })
     .sort((a, b) => a.label.localeCompare(b.label));
@@ -201,14 +324,13 @@ export function createConfigFromEntity(hass, entityId) {
   if (!boxId) {
     throw new Error('Invalid entity selected - cannot extract Toniebox ID');
   }
-  
+
   const entity = hass.states[entityId];
   const deviceName = extractDeviceName(entity, boxId);
-  
+
   return {
     entity_source: entityId,
     toniebox_id: boxId,
     toniebox_name: deviceName
   };
 }
-

@@ -1,96 +1,114 @@
 const translations = {
   en: {
     title: 'Title',
+    now_playing: 'Now playing',
+    chapter: 'Chapter',
+    battery: 'Battery',
+    charging: 'Charging',
+    on_charger: 'On charger',
+    off_charger: 'Off charger',
+    volume: 'Volume',
+    volume_db: 'Volume dB',
+    no_content: 'No Tonie on the box',
+    unknown_title: 'Unknown content',
     tag_uid: 'Tag UID',
     charging_station: 'Charging Station',
-    volume_db: 'Volume dB',
     volume_level: 'Volume Level',
     small_ear_quieter: 'Small Ear (quieter)',
     big_ear_louder: 'Big Ear (louder)',
     content_audio_id: 'Content Audio ID',
     cache_cloud_content: 'Cache Cloud Content',
     enable_cloud_operation: 'Enable Cloud Operation',
+    server: {
+      heading: 'TeddyCloud Server',
+      controls: 'Controls',
+      status: 'Status',
+      online: 'Online',
+      offline: 'Offline',
+      no_entities: 'No TeddyCloud server entities found',
+      show_all: 'Show all',
+      show_less: 'Show less'
+    },
     config: {
       toniebox_id: 'Toniebox ID',
       toniebox_name: 'Toniebox Name',
       language: 'Language',
-      selection_mode: 'Configuration Mode',
       entity_source: 'Select Toniebox Entity',
-      device_source: 'Select Toniebox Device',
       toniebox_id_description: 'The ID of your Toniebox (used in entity names)',
       toniebox_name_description: 'Display name for your Toniebox',
       language_description: 'Language for the card interface',
-      selection_mode_description: 'Choose how to configure your Toniebox',
       entity_source_description: 'Select any entity from your Toniebox to auto-configure',
-      device_source_description: 'Select your Toniebox device directly from Home Assistant registry',
-      mode_auto: 'Auto-detect from entity',
-      mode_manual: 'Manual configuration',
-      mode_device: 'Device-based selection',
+      show_server: 'Show TeddyCloud server section',
+      show_server_description: 'Display server status and switches below the box',
+      show_details: 'Show extra details',
+      show_details_description: 'Adds tag UID, audio ID and ear buttons to the card',
       no_devices_found: 'No TeddyCloud devices found',
-      no_ha_devices_found: 'No TeddyCloud devices found in Home Assistant registry',
       devices_found: 'Found {count} TeddyCloud device(s)',
-      ha_devices_found: 'Found {count} Toniebox device(s) in registry',
-      entity_validation: 'Entity Validation',
-      device_validation: 'Device Validation',
+      entity_validation: 'Detected entities',
       entities_missing: '{count} of {total} entities missing',
-      entities_all_found: 'All entities found',
-      device_valid: 'Device configuration valid',
-      device_invalid: 'Device configuration invalid',
-      switch_to_auto: 'Switch to auto-detection',
-      switch_to_manual: 'Switch to manual setup',
-      switch_to_device: 'Switch to device selection'
+      entities_all_found: 'All entities found'
     },
     errors: {
       missing_toniebox_id: 'Toniebox ID is required',
       missing_toniebox_name: 'Toniebox Name is required',
-      entity_not_found: 'Entity not found'
+      entity_not_found: 'Entity not found',
+      not_configured: 'Select a Toniebox entity in the card editor.'
     }
   },
   de: {
     title: 'Titel',
+    now_playing: 'Läuft gerade',
+    chapter: 'Kapitel',
+    battery: 'Akku',
+    charging: 'Lädt',
+    on_charger: 'In Ladestation',
+    off_charger: 'Nicht am Laden',
+    volume: 'Lautstärke',
+    volume_db: 'Lautstärke dB',
+    no_content: 'Kein Tonie auf der Box',
+    unknown_title: 'Unbekannter Inhalt',
     tag_uid: 'Tag UID',
     charging_station: 'Ladestation',
-    volume_db: 'Lautstärke dB',
     volume_level: 'Lautstärke Level',
     small_ear_quieter: 'kleines Ohr (leiser)',
     big_ear_louder: 'großes Ohr (lauter)',
     content_audio_id: 'Content Audio ID',
     cache_cloud_content: 'Cloud-Inhalte zwischenspeichern',
     enable_cloud_operation: 'Cloud-Betrieb aktivieren',
+    server: {
+      heading: 'TeddyCloud Server',
+      controls: 'Einstellungen',
+      status: 'Status',
+      online: 'Online',
+      offline: 'Offline',
+      no_entities: 'Keine TeddyCloud Server-Entities gefunden',
+      show_all: 'Alle anzeigen',
+      show_less: 'Weniger anzeigen'
+    },
     config: {
       toniebox_id: 'Toniebox ID',
       toniebox_name: 'Toniebox Name',
       language: 'Sprache',
-      selection_mode: 'Konfigurationsmodus',
       entity_source: 'Toniebox Entity auswählen',
-      device_source: 'Toniebox Gerät auswählen',
       toniebox_id_description: 'Die ID Ihrer Toniebox (wird in Entity-Namen verwendet)',
       toniebox_name_description: 'Anzeigename für Ihre Toniebox',
       language_description: 'Sprache für die Karten-Oberfläche',
-      selection_mode_description: 'Wählen Sie, wie Sie Ihre Toniebox konfigurieren möchten',
       entity_source_description: 'Wählen Sie eine Entity Ihrer Toniebox zur automatischen Konfiguration',
-      device_source_description: 'Wählen Sie Ihr Toniebox-Gerät direkt aus der Home Assistant Registrierung',
-      mode_auto: 'Automatische Erkennung von Entity',
-      mode_manual: 'Manuelle Konfiguration',
-      mode_device: 'Gerätebasierte Auswahl',
+      show_server: 'TeddyCloud Server-Bereich anzeigen',
+      show_server_description: 'Server-Status und Schalter unter der Box anzeigen',
+      show_details: 'Zusatzinfos anzeigen',
+      show_details_description: 'Ergänzt Tag UID, Audio ID und Ohr-Tasten auf der Karte',
       no_devices_found: 'Keine TeddyCloud Geräte gefunden',
-      no_ha_devices_found: 'Keine TeddyCloud Geräte in Home Assistant Registrierung gefunden',
       devices_found: '{count} TeddyCloud Gerät(e) gefunden',
-      ha_devices_found: '{count} Toniebox-Gerät(e) in Registrierung gefunden',
-      entity_validation: 'Entity Validierung',
-      device_validation: 'Geräte Validierung',
+      entity_validation: 'Erkannte Entities',
       entities_missing: '{count} von {total} Entities fehlen',
-      entities_all_found: 'Alle Entities gefunden',
-      device_valid: 'Geräte-Konfiguration gültig',
-      device_invalid: 'Geräte-Konfiguration ungültig',
-      switch_to_auto: 'Zur automatischen Erkennung wechseln',
-      switch_to_manual: 'Zur manuellen Einrichtung wechseln',
-      switch_to_device: 'Zur Geräteauswahl wechseln'
+      entities_all_found: 'Alle Entities gefunden'
     },
     errors: {
       missing_toniebox_id: 'Toniebox ID ist erforderlich',
       missing_toniebox_name: 'Toniebox Name ist erforderlich',
-      entity_not_found: 'Entity nicht gefunden'
+      entity_not_found: 'Entity nicht gefunden',
+      not_configured: 'Bitte im Karten-Editor eine Toniebox-Entity auswählen.'
     }
   }
 };
@@ -98,20 +116,22 @@ const translations = {
 export function localize(key, language = 'en', replacements = {}) {
   const keys = key.split('.');
   let value = translations[language] || translations.en;
-  
+  let fallback = translations.en;
+
   for (const k of keys) {
     value = value?.[k];
+    fallback = fallback?.[k];
   }
-  
-  if (!value) {
+
+  const resolved = value ?? fallback;
+  if (typeof resolved !== 'string') {
     return key;
   }
-  
-  // Replace template variables like {count}, {total}
-  let result = value;
+
+  let result = resolved;
   Object.entries(replacements).forEach(([placeholder, replacement]) => {
-    result = result.replace(new RegExp(`\\{${placeholder}\\}`, 'g'), replacement);
+    result = result.split('{' + placeholder + '}').join(String(replacement));
   });
-  
+
   return result;
 }
