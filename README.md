@@ -90,7 +90,7 @@ resources:
 1. **Add the Card**: Dashboard → Edit → Add Card → "TeddyCloud Toniebox Card"
 2. **Select Entity**: Choose any Toniebox entity from the dropdown - the Toniebox ID
    and name are derived from it
-3. **Pick the sections**: toggle the TeddyCloud server block and the extra details
+3. **Pick the sections**: toggle the extra details
 4. **Validate**: the editor lists every entity it discovered for that Toniebox
 
 ### 📝 YAML Configuration
@@ -99,7 +99,6 @@ resources:
 type: custom:teddy-card
 entity_source: "sensor.teddycloud_box_12345678_tag_valid"  # Any Toniebox entity
 language: "de"        # Optional: 'en' or 'de'
-show_server: true     # Optional: TeddyCloud server section (default: true)
 show_details: false   # Optional: tag UID, audio ID, ear buttons (default: false)
 
 # Without an entity picker (backward compatible)
@@ -115,7 +114,6 @@ language: "en"
 | `toniebox_id` | – | Manual alternative to `entity_source` |
 | `toniebox_name` | auto | Card headline; auto-detected from the entity |
 | `language` | `en` | `en` or `de` |
-| `show_server` | `true` | Render the TeddyCloud server section |
 | `show_details` | `false` | Render tag UID, audio ID, ear buttons and last seen |
 
 ### 🔄 Upgrading from v1.0.x
@@ -143,21 +141,15 @@ picked up automatically. Anything that is missing is simply left out of the card
 | Volume | `sensor.*volume_level` and `sensor.*volume_db` | Volume tile with level bars |
 | Tag UID / Audio ID / Ears / Last seen | `*tag*`, `*audio_id*`, `event.*volume_up`/`_down`, `*last_seen*` | Only with `show_details: true` |
 
-### Server entities
-
-Every `teddycloud_server_*` entity is used:
-
-- `switch.*` / `input_boolean.*` become toggles you can flip directly from the card
-- `sensor.*`, `binary_sensor.*` and `update.*` become status tiles (version, cached
-  content, connection state, …), collapsed to 6 tiles with a *Show all* link
-
 ## Card Layout
 
-1. **Header**: Toniebox name and a charging pill
+1. **Header**: Toniebox name
 2. **Hero**: cover artwork, title and current chapter
 3. **Tiles**: battery / charging state and volume level (incl. dB)
 4. **Details** (optional): tag UID, audio ID, ear buttons, last seen
-5. **TeddyCloud Server** (optional): status tiles and switches
+
+TeddyCloud *server* entities are deliberately not rendered - add a standard
+entities card if you need them.
 
 ## Language Support
 

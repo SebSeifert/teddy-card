@@ -3,7 +3,6 @@
  */
 
 const BOX_PREFIX = 'teddycloud_box_';
-const SERVER_PREFIX = 'teddycloud_server_';
 
 /**
  * Extract Toniebox ID from an entity ID
@@ -37,13 +36,6 @@ export function splitEntityId(entityId) {
  */
 export function isTeddyCloudEntity(entityId) {
   return Boolean(entityId) && entityId.includes(BOX_PREFIX);
-}
-
-/**
- * Check if an entity ID is a TeddyCloud server entity
- */
-export function isTeddyCloudServerEntity(entityId) {
-  return Boolean(entityId) && entityId.includes(SERVER_PREFIX);
 }
 
 /**
@@ -145,33 +137,9 @@ export function getBoxEntities(hass, boxId) {
 }
 
 /**
- * Collect every TeddyCloud server entity, keyed by the suffix following
- * `teddycloud_server_`.
- * @param {object} hass
- * @returns {Array<{entityId: string, domain: string, suffix: string}>}
- */
-export function getServerEntities(hass) {
-  if (!hass?.states) {
-    return [];
-  }
-
-  return Object.keys(hass.states)
-    .filter(isTeddyCloudServerEntity)
-    .map(entityId => {
-      const { domain, objectId } = splitEntityId(entityId);
-      return {
-        entityId,
-        domain,
-        suffix: objectId.slice(objectId.indexOf(SERVER_PREFIX) + SERVER_PREFIX.length)
-      };
-    })
-    .sort((a, b) => a.suffix.localeCompare(b.suffix));
-}
-
-/**
  * Find the first entity whose suffix matches one of the given patterns.
  * Patterns are tried in order, so put the most specific one first.
- * @param {Array} entities - result of getBoxEntities/getServerEntities
+ * @param {Array} entities - result of getBoxEntities
  * @param {Array<RegExp>} patterns
  * @param {Array<string>} [domains] - optional domain allow list
  * @returns {string|null} entity id
@@ -219,23 +187,6 @@ export function resolveBoxEntities(hass, boxId) {
     lastSeen: matchEntity(found, [/last_seen/, /last_online/, /last_contact/], ['sensor']),
     all: found
   };
-}
-
-/**
- * Group the server entities into switches (controls) and read-only info.
- * @param {object} hass
- * @returns {{controls: Array, info: Array, all: Array}}
- */
-export function resolveServerEntities(hass) {
-  const all = getServerEntities(hass);
-  const controls = all.filter(entity =>
-    ['switch', 'input_boolean', 'number', 'select', 'button'].includes(entity.domain)
-  );
-  const info = all.filter(entity =>
-    ['sensor', 'binary_sensor', 'update'].includes(entity.domain)
-  );
-
-  return { controls, info, all };
 }
 
 /**

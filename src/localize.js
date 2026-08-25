@@ -19,16 +19,6 @@ const translations = {
     content_audio_id: 'Content Audio ID',
     cache_cloud_content: 'Cache Cloud Content',
     enable_cloud_operation: 'Enable Cloud Operation',
-    server: {
-      heading: 'TeddyCloud Server',
-      controls: 'Controls',
-      status: 'Status',
-      online: 'Online',
-      offline: 'Offline',
-      no_entities: 'No TeddyCloud server entities found',
-      show_all: 'Show all',
-      show_less: 'Show less'
-    },
     config: {
       toniebox_id: 'Toniebox ID',
       toniebox_name: 'Toniebox Name',
@@ -38,8 +28,6 @@ const translations = {
       toniebox_name_description: 'Display name for your Toniebox',
       language_description: 'Language for the card interface',
       entity_source_description: 'Select any entity from your Toniebox to auto-configure',
-      show_server: 'Show TeddyCloud server section',
-      show_server_description: 'Display server status and switches below the box',
       show_details: 'Show extra details',
       show_details_description: 'Adds tag UID, audio ID and ear buttons to the card',
       no_devices_found: 'No TeddyCloud devices found',
@@ -75,16 +63,6 @@ const translations = {
     content_audio_id: 'Content Audio ID',
     cache_cloud_content: 'Cloud-Inhalte zwischenspeichern',
     enable_cloud_operation: 'Cloud-Betrieb aktivieren',
-    server: {
-      heading: 'TeddyCloud Server',
-      controls: 'Einstellungen',
-      status: 'Status',
-      online: 'Online',
-      offline: 'Offline',
-      no_entities: 'Keine TeddyCloud Server-Entities gefunden',
-      show_all: 'Alle anzeigen',
-      show_less: 'Weniger anzeigen'
-    },
     config: {
       toniebox_id: 'Toniebox ID',
       toniebox_name: 'Toniebox Name',
@@ -94,8 +72,6 @@ const translations = {
       toniebox_name_description: 'Anzeigename für Ihre Toniebox',
       language_description: 'Sprache für die Karten-Oberfläche',
       entity_source_description: 'Wählen Sie eine Entity Ihrer Toniebox zur automatischen Konfiguration',
-      show_server: 'TeddyCloud Server-Bereich anzeigen',
-      show_server_description: 'Server-Status und Schalter unter der Box anzeigen',
       show_details: 'Zusatzinfos anzeigen',
       show_details_description: 'Ergänzt Tag UID, Audio ID und Ohr-Tasten auf der Karte',
       no_devices_found: 'Keine TeddyCloud Geräte gefunden',

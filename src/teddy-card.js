@@ -3,13 +3,11 @@ import { localize } from './localize.js';
 import {
   extractBoxIdFromEntity,
   extractDeviceName,
-  resolveBoxEntities,
-  resolveServerEntities
+  resolveBoxEntities
 } from './utils.js';
 import './editor.js';
 
-const CARD_VERSION = '0.4.0';
-const SERVER_INFO_COLLAPSED = 6;
+const CARD_VERSION = '0.4.1';
 
 console.info(
   `%c TEDDY-CARD %c v${CARD_VERSION} `,
@@ -22,7 +20,6 @@ export class TeddyCard extends LitElement {
     return {
       hass: {},
       config: {},
-      _serverExpanded: { state: true },
       _failedImageUrl: { state: true }
     };
   }
@@ -34,10 +31,8 @@ export class TeddyCard extends LitElement {
       entity_source: '',
       toniebox_id: '',
       toniebox_name: '',
-      show_server: true,
       show_details: false
     };
-    this._serverExpanded = false;
     this._failedImageUrl = null;
   }
 
@@ -49,7 +44,6 @@ export class TeddyCard extends LitElement {
     return {
       entity_source: '',
       language: 'en',
-      show_server: true,
       show_details: false
     };
   }
@@ -70,7 +64,6 @@ export class TeddyCard extends LitElement {
 
     this.config = {
       language: 'en',
-      show_server: true,
       show_details: false,
       ...normalizedConfig
     };
@@ -104,7 +97,7 @@ export class TeddyCard extends LitElement {
   }
 
   getCardSize() {
-    return this.config?.show_server ? 8 : 5;
+    return this.config?.show_details ? 6 : 4;
   }
 
   get _lang() {
@@ -241,8 +234,8 @@ export class TeddyCard extends LitElement {
         <div class="hero-inner">
           ${this._renderCover(entities)}
           <div class="now" @click=${() => this._showMoreInfo(entities.contentTitle)}>
-            <div class="eyebrow">${series || localize(title ? 'now_playing' : 'no_content', lang)}</div>
-            <div class="now-title">${title || localize('no_content', lang)}</div>
+            ${title ? html`<div class="eyebrow">${series || localize('now_playing', lang)}</div>` : ''}
+            <div class="now-title ${title ? '' : 'now-title-empty'}">${title || localize('no_content', lang)}</div>
             ${chapter ? html`
               <div class="now-chapter">
                 <ha-icon icon="mdi:playlist-music"></ha-icon>
@@ -367,94 +360,6 @@ export class TeddyCard extends LitElement {
     `;
   }
 
-  // ----------------------------------------------------------------- server
-
-  _renderServerControl(item) {
-    const entity = this._state(item.entityId);
-    if (!entity) {
-      return '';
-    }
-
-    const isToggle = ['switch', 'input_boolean'].includes(item.domain);
-
-    return html`
-      <div class="server-control" @click=${() => this._showMoreInfo(item.entityId)}>
-        <span class="server-control-name">${this._label(entity, item.suffix)}</span>
-        ${isToggle ? html`
-          <ha-switch
-            .checked=${entity.state === 'on'}
-            @click=${ev => this._toggle(item.entityId, ev)}
-          ></ha-switch>
-        ` : html`<span class="detail-state">${this._format(entity) ?? '–'}</span>`}
-      </div>
-    `;
-  }
-
-  _renderServerInfo(item) {
-    const entity = this._state(item.entityId);
-    if (!entity) {
-      return '';
-    }
-
-    const value = item.domain === 'binary_sensor'
-      ? (entity.state === 'on' ? localize('server.online', this._lang) : localize('server.offline', this._lang))
-      : (this._format(entity) ?? '–');
-
-    return html`
-      <div class="server-tile" @click=${() => this._showMoreInfo(item.entityId)}>
-        <span class="tile-label">${this._label(entity, item.suffix)}</span>
-        <span class="tile-value">${value}</span>
-      </div>
-    `;
-  }
-
-  _renderServer() {
-    if (!this.config?.show_server) {
-      return '';
-    }
-
-    const lang = this._lang;
-    const { controls, info } = resolveServerEntities(this.hass);
-
-    if (!controls.length && !info.length) {
-      return html`
-        <div class="section">
-          <h3>${localize('server.heading', lang)}</h3>
-          <div class="empty">${localize('server.no_entities', lang)}</div>
-        </div>
-      `;
-    }
-
-    const visibleInfo = this._serverExpanded ? info : info.slice(0, SERVER_INFO_COLLAPSED);
-
-    return html`
-      <div class="section">
-        <h3>
-          <ha-icon icon="mdi:server-network"></ha-icon>
-          ${localize('server.heading', lang)}
-        </h3>
-
-        ${info.length ? html`
-          <div class="server-grid">
-            ${visibleInfo.map(item => this._renderServerInfo(item))}
-          </div>
-          ${info.length > SERVER_INFO_COLLAPSED ? html`
-            <button class="link-button" @click=${() => { this._serverExpanded = !this._serverExpanded; }}>
-              ${localize(this._serverExpanded ? 'server.show_less' : 'server.show_all', lang)}
-              (${info.length})
-            </button>
-          ` : ''}
-        ` : ''}
-
-        ${controls.length ? html`
-          <div class="server-controls">
-            ${controls.map(item => this._renderServerControl(item))}
-          </div>
-        ` : ''}
-      </div>
-    `;
-  }
-
   // ----------------------------------------------------------------- render
 
   render() {
@@ -479,19 +384,11 @@ export class TeddyCard extends LitElement {
     }
 
     const entities = resolveBoxEntities(this.hass, this.config.toniebox_id);
-    const chargerEntity = this._state(entities.charger);
-    const charging = chargerEntity?.state === 'on';
 
     return html`
       <ha-card>
         <div class="header">
           <span class="box-name">${this.config.toniebox_name || `Toniebox ${this.config.toniebox_id}`}</span>
-          ${chargerEntity ? html`
-            <span class="pill ${charging ? 'pill-charging' : ''}">
-              <ha-icon icon="${charging ? 'mdi:power-plug' : 'mdi:power-plug-off'}"></ha-icon>
-              ${localize(charging ? 'on_charger' : 'off_charger', lang)}
-            </span>
-          ` : ''}
         </div>
 
         ${this._renderHero(entities)}
@@ -502,7 +399,6 @@ export class TeddyCard extends LitElement {
         </div>
 
         ${this._renderDetails(entities)}
-        ${this._renderServer()}
       </ha-card>
     `;
   }
@@ -539,28 +435,6 @@ export class TeddyCard extends LitElement {
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
-      }
-
-      .pill {
-        display: inline-flex;
-        align-items: center;
-        gap: 4px;
-        flex-shrink: 0;
-        padding: 4px 10px;
-        border-radius: 999px;
-        font-size: 12px;
-        font-weight: 500;
-        color: var(--secondary-text-color);
-        background: var(--divider-color);
-      }
-
-      .pill-charging {
-        color: var(--success-color, #4caf50);
-        background: color-mix(in srgb, var(--success-color, #4caf50) 18%, transparent);
-      }
-
-      .pill ha-icon {
-        --mdc-icon-size: 15px;
       }
 
       /* ------------------------------------------------------------ hero */
@@ -646,6 +520,11 @@ export class TeddyCard extends LitElement {
         -webkit-line-clamp: 2;
         -webkit-box-orient: vertical;
         overflow: hidden;
+      }
+
+      .now-title-empty {
+        font-weight: 500;
+        color: var(--secondary-text-color);
       }
 
       .now-chapter {
@@ -800,106 +679,6 @@ export class TeddyCard extends LitElement {
         font-size: 14px;
         color: var(--secondary-text-color);
         text-align: right;
-      }
-
-      /* ---------------------------------------------------------- server */
-
-      .section {
-        border-top: 1px solid var(--divider-color);
-        padding-top: var(--teddy-gap);
-      }
-
-      .section h3 {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        margin: 0 0 10px 0;
-        font-size: 13px;
-        font-weight: 600;
-        letter-spacing: 0.04em;
-        text-transform: uppercase;
-        color: var(--secondary-text-color);
-      }
-
-      .section h3 ha-icon {
-        --mdc-icon-size: 18px;
-      }
-
-      .server-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
-        gap: 8px;
-      }
-
-      .server-tile {
-        display: flex;
-        flex-direction: column;
-        gap: 2px;
-        padding: 10px;
-        border-radius: 12px;
-        background: var(--secondary-background-color);
-        cursor: pointer;
-        min-width: 0;
-      }
-
-      .tile-label {
-        font-size: 11px;
-        color: var(--secondary-text-color);
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-      }
-
-      .tile-value {
-        font-size: 15px;
-        font-weight: 600;
-        color: var(--primary-text-color);
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-      }
-
-      .server-controls {
-        margin-top: 10px;
-      }
-
-      .server-control {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 12px;
-        padding: 6px 4px;
-        border-bottom: 1px solid var(--divider-color);
-        cursor: pointer;
-      }
-
-      .server-control:last-child {
-        border-bottom: none;
-      }
-
-      .server-control-name {
-        font-size: 14px;
-        color: var(--primary-text-color);
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-      }
-
-      .link-button {
-        margin-top: 8px;
-        padding: 0;
-        border: none;
-        background: none;
-        font: inherit;
-        font-size: 13px;
-        color: var(--primary-color);
-        cursor: pointer;
-      }
-
-      .empty {
-        font-size: 14px;
-        color: var(--secondary-text-color);
-        font-style: italic;
       }
 
       /* ----------------------------------------------------------- setup */

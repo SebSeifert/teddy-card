@@ -26,7 +26,6 @@ export class TeddyCardEditor extends LitElement {
       toniebox_name: '',
       language: 'en',
       entity_source: '',
-      show_server: true,
       show_details: false
     };
     this._availableDevices = [];
@@ -40,7 +39,6 @@ export class TeddyCardEditor extends LitElement {
       toniebox_name: '',
       language: 'en',
       entity_source: '',
-      show_server: true,
       show_details: false,
       ...config
     };
@@ -84,10 +82,6 @@ export class TeddyCardEditor extends LitElement {
 
   get _entity_source() {
     return this.config?.entity_source || '';
-  }
-
-  get _show_server() {
-    return this.config?.show_server !== false;
   }
 
   get _show_details() {
@@ -283,18 +277,6 @@ export class TeddyCardEditor extends LitElement {
             <mwc-list-item value="en">English</mwc-list-item>
             <mwc-list-item value="de">Deutsch</mwc-list-item>
           </ha-select>
-        </div>
-
-        <div class="form-group switch-row">
-          <ha-switch
-            .checked=${this._show_server}
-            .configValue=${'show_server'}
-            @change=${this._switchChanged}
-          ></ha-switch>
-          <div>
-            <div class="switch-label">${localize('config.show_server', this._language)}</div>
-            <div class="switch-help">${localize('config.show_server_description', this._language)}</div>
-          </div>
         </div>
 
         <div class="form-group switch-row">
