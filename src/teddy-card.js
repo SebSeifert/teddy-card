@@ -7,7 +7,7 @@ import {
 } from './utils.js';
 import './editor.js';
 
-const CARD_VERSION = '0.4.2';
+const CARD_VERSION = '0.4.3';
 
 console.info(
   `%c TEDDY-CARD %c v${CARD_VERSION} `,
@@ -333,27 +333,48 @@ export class TeddyCard extends LitElement {
     const levelEntity = this._state(entities.volumeLevel);
     const dbEntity = this._state(entities.volumeDb);
 
+    // Only draw a scale when the entity actually declares one - inventing a
+    // maximum produces nonsense like "9 / 3".
     const level = Number(levelEntity?.state);
-    const min = Number(levelEntity?.attributes?.min ?? 0);
-    const max = Number(levelEntity?.attributes?.max ?? 3);
-    const steps = Number.isFinite(max) && max > min ? max - min + 1 : 4;
-    const active = Number.isFinite(level) ? level - min + 1 : 0;
+    const min = Number(levelEntity?.attributes?.min);
+    const max = Number(levelEntity?.attributes?.max);
+    const hasScale = Number.isFinite(level) && Number.isFinite(min) && Number.isFinite(max) && max > min;
+
+    const steps = hasScale ? max - min + 1 : 0;
+    const active = hasScale ? level - min + 1 : 0;
+    const ratio = hasScale ? active / steps : null;
 
     const db = this._format(dbEntity);
-    const value = Number.isFinite(level) ? `${level}${Number.isFinite(max) ? ` / ${max}` : ''}` : '–';
+    const levelText = this._format(levelEntity);
+    const value = hasScale ? `${level} / ${max}` : (levelText ?? db ?? '–');
+    const caption = hasScale || !levelText
+      ? localize('volume', lang)
+      : `${localize('volume', lang)}${db ? ` · ${db}` : ''}`;
+
+    const icon = ratio === null
+      ? 'mdi:volume-medium'
+      : ratio <= 0.01 ? 'mdi:volume-off'
+        : ratio <= 0.34 ? 'mdi:volume-low'
+          : ratio <= 0.67 ? 'mdi:volume-medium'
+            : 'mdi:volume-high';
 
     return html`
       <div class="stat" @click=${() => this._showMoreInfo(entities.volumeLevel || entities.volumeDb)}>
-        <ha-icon icon="${active <= 1 ? 'mdi:volume-low' : active >= steps ? 'mdi:volume-high' : 'mdi:volume-medium'}"></ha-icon>
+        <ha-icon icon="${icon}"></ha-icon>
         <div class="stat-body">
-          <span class="stat-value">${value}${db ? html` <em>${db}</em>` : ''}</span>
-          <span class="stat-caption">${localize('volume', lang)}</span>
+          <span class="stat-value">${value}${hasScale && db ? html` <em>${db}</em>` : ''}</span>
+          <span class="stat-caption">${caption}</span>
         </div>
-        <div class="steps">
-          ${Array.from({ length: steps }, (_, index) => html`
-            <span class="${index < active ? 'on' : ''}"></span>
-          `)}
-        </div>
+        ${hasScale && steps <= 12 ? html`
+          <div class="steps">
+            ${Array.from({ length: steps }, (_, index) => html`
+              <span class="${index < active ? 'on' : ''}"></span>
+            `)}
+          </div>
+        ` : ''}
+        ${hasScale && steps > 12 ? html`
+          <div class="stat-bar"><span style="width:${Math.round(ratio * 100)}%; background: var(--primary-color)"></span></div>
+        ` : ''}
       </div>
     `;
   }

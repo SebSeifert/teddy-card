@@ -1,6 +1,6 @@
 {
   "name": "teddy-card",
-  "version": "0.4.2",
+  "version": "0.4.3",
   "description": "TeddyCloud Toniebox Card for Home Assistant",
   "main": "dist/teddy-card.js",
   "type": "module",
