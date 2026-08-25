@@ -114,7 +114,8 @@ language: "en"
 | `toniebox_id` | – | Manual alternative to `entity_source` |
 | `toniebox_name` | auto | Card headline; auto-detected from the entity |
 | `language` | `en` | `en` or `de` |
-| `show_details` | `false` | Render tag UID, audio ID, ear buttons and last seen |
+| `show_details` | `false` | Render volume limit, tag UID, audio ID, ear buttons and last seen |
+| `volume_max` | `16` | Top of the volume level scale, used when the entity declares no `max` |
 
 ### 🔄 Upgrading from v1.0.x
 
@@ -129,6 +130,11 @@ relying on fixed entity IDs. Everything named `teddycloud_box_[ID]_*` is scanned
 mapped onto the roles below, so extra sensors your TeddyCloud version provides are
 picked up automatically. Anything that is missing is simply left out of the card.
 
+> TeddyCloud uses two different volume scales: the **level** the box actually plays at
+> is `0-16` and read-only (changed by pressing the ears), while the **limit** in the
+> settings is `0-3` (0=25% … 3=100%). The tile shows the level; the limit is a separate
+> entity. See [MQTT_CONTROL.md](https://github.com/toniebox-reverse-engineering/teddycloud/blob/master/MQTT_CONTROL.md).
+
 ### Toniebox roles
 
 | Role | Matched by | Shown as |
@@ -138,7 +144,8 @@ picked up automatically. Anything that is missing is simply left out of the card
 | Chapter | `sensor.*chapter` / `*track` / `*episode`, or a `chapter`/`track` attribute on the title sensor | Line below the title |
 | Battery | `sensor.*battery*` | Battery tile incl. progress bar |
 | Charging | `binary_sensor.*charger*` | Header pill + battery tile |
-| Volume | `sensor.*volume_level` and `sensor.*volume_db` | Volume tile with level bars |
+| Volume | `sensor.*volume_level` and `sensor.*volume_db` | Volume tile with a 0-16 scale |
+| Volume limit | `*volume_limit*` / `*max_volume*` | Only with `show_details: true` |
 | Tag UID / Audio ID / Ears / Last seen | `*tag*`, `*audio_id*`, `event.*volume_up`/`_down`, `*last_seen*` | Only with `show_details: true` |
 
 ## Card Layout

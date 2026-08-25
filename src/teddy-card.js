@@ -7,7 +7,13 @@ import {
 } from './utils.js';
 import './editor.js';
 
-const CARD_VERSION = '0.4.3';
+const CARD_VERSION = '0.4.4';
+
+// TeddyCloud reports the playback volume the box is actually using on a 0-16
+// scale (read-only, changed by pressing the ears). The separate 0-3 scale seen
+// in the settings is the volume *limit*, not the level.
+// https://github.com/toniebox-reverse-engineering/teddycloud/blob/master/MQTT_CONTROL.md
+const DEFAULT_VOLUME_MAX = 16;
 
 console.info(
   `%c TEDDY-CARD %c v${CARD_VERSION} `,
@@ -333,11 +339,14 @@ export class TeddyCard extends LitElement {
     const levelEntity = this._state(entities.volumeLevel);
     const dbEntity = this._state(entities.volumeDb);
 
-    // Only draw a scale when the entity actually declares one - inventing a
-    // maximum produces nonsense like "9 / 3".
+    // Prefer a scale the entity declares itself; fall back to TeddyCloud's
+    // documented 0-16 range, overridable via `volume_max`.
     const level = Number(levelEntity?.state);
-    const min = Number(levelEntity?.attributes?.min);
-    const max = Number(levelEntity?.attributes?.max);
+    const min = Number(levelEntity?.attributes?.min ?? 0);
+    const declaredMax = Number(levelEntity?.attributes?.max);
+    const max = Number.isFinite(declaredMax)
+      ? declaredMax
+      : Number(this.config?.volume_max ?? DEFAULT_VOLUME_MAX);
     const hasScale = Number.isFinite(level) && Number.isFinite(min) && Number.isFinite(max) && max > min;
 
     const steps = hasScale ? max - min + 1 : 0;
@@ -402,6 +411,7 @@ export class TeddyCard extends LitElement {
     const lang = this._lang;
     return html`
       <div class="details">
+        ${this._renderDetailRow(entities.volumeLimit, localize('volume_limit', lang), 'mdi:volume-plus')}
         ${this._renderDetailRow(entities.tagValid, localize('tag_uid', lang), 'mdi:tag')}
         ${this._renderDetailRow(entities.contentAudioId, localize('content_audio_id', lang), 'mdi:identifier')}
         ${this._renderDetailRow(entities.volumeDown, localize('small_ear_quieter', lang), 'mdi:ear-hearing-off')}

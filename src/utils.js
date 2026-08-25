@@ -180,6 +180,7 @@ export function resolveBoxEntities(hass, boxId) {
     charger: pick([/^charger$/, /charg/], ['binary_sensor'], 'charger'),
     volumeLevel: pick([/^volume_level$/, /volume_level/], ['sensor', 'number'], 'volumeLevel'),
     volumeDb: pick([/^volume_db$/, /volume_db/], ['sensor'], 'volumeDb'),
+    volumeLimit: matchEntity(found, [/volume_limit/, /max_volume/, /limit.*speaker/, /speaker.*limit/], ['number', 'select', 'sensor']),
     tagValid: pick([/^tag_valid$/, /tag/], ['sensor', 'binary_sensor'], 'tagValid'),
     contentAudioId: pick([/^content_audio_id$/, /audio_id/], ['sensor'], 'contentAudioId'),
     volumeDown: pick([/^volume_down$/], ['event'], 'volumeDown'),
