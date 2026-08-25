@@ -7,7 +7,7 @@ import {
 } from './utils.js';
 import './editor.js';
 
-const CARD_VERSION = '0.4.1';
+const CARD_VERSION = '0.4.2';
 
 console.info(
   `%c TEDDY-CARD %c v${CARD_VERSION} `,
@@ -20,7 +20,7 @@ export class TeddyCard extends LitElement {
     return {
       hass: {},
       config: {},
-      _failedImageUrl: { state: true }
+      _failedUrls: { state: true }
     };
   }
 
@@ -33,7 +33,7 @@ export class TeddyCard extends LitElement {
       toniebox_name: '',
       show_details: false
     };
-    this._failedImageUrl = null;
+    this._failedUrls = new Set();
   }
 
   static getConfigElement() {
@@ -164,6 +164,39 @@ export class TeddyCard extends LitElement {
 
   // ---------------------------------------------------------------- content
 
+  /**
+   * Candidate URLs for the cover, best first.
+   *
+   * For `image` entities the `entity_picture` attribute can lag behind (or be a
+   * small thumbnail supplied by the integration), while the entity's actual
+   * content is served by the image proxy. The entity state is the last-updated
+   * timestamp and doubles as the cache buster.
+   */
+  _pictureUrls(entity) {
+    if (!entity) {
+      return [];
+    }
+
+    const urls = [];
+    if (entity.entity_id?.startsWith('image.')) {
+      urls.push(`/api/image_proxy/${entity.entity_id}?state=${encodeURIComponent(entity.state || '')}`);
+    }
+    if (entity.attributes?.entity_picture) {
+      urls.push(entity.attributes.entity_picture);
+    }
+
+    return urls.filter((url, index) => urls.indexOf(url) === index);
+  }
+
+  /** First candidate that has not failed to load yet. */
+  _pictureUrl(entity) {
+    return this._pictureUrls(entity).find(url => !this._failedUrls.has(url)) || null;
+  }
+
+  _onPictureError(url) {
+    this._failedUrls = new Set([...this._failedUrls, url]);
+  }
+
   /** The chapter can come from its own entity or from a title attribute. */
   _chapterText(entities) {
     const chapterEntity = this._state(entities.chapter);
@@ -196,10 +229,9 @@ export class TeddyCard extends LitElement {
   }
 
   _renderCover(entities) {
-    const pictureEntity = this._state(entities.contentPicture);
-    const imageUrl = pictureEntity?.attributes?.entity_picture;
+    const imageUrl = this._pictureUrl(this._state(entities.contentPicture));
 
-    if (!imageUrl || this._failedImageUrl === imageUrl) {
+    if (!imageUrl) {
       return html`
         <div class="cover cover-empty">
           <ha-icon icon="mdi:teddy-bear"></ha-icon>
@@ -212,7 +244,7 @@ export class TeddyCard extends LitElement {
         <img
           src="${imageUrl}"
           alt=""
-          @error=${() => { this._failedImageUrl = imageUrl; }}
+          @error=${() => this._onPictureError(imageUrl)}
         />
       </div>
     `;
@@ -224,9 +256,7 @@ export class TeddyCard extends LitElement {
     const title = this._format(titleEntity);
     const chapter = this._chapterText(entities);
     const series = this._format(this._state(entities.contentSeries));
-    const pictureEntity = this._state(entities.contentPicture);
-    const picture = pictureEntity?.attributes?.entity_picture;
-    const backdrop = picture && this._failedImageUrl !== picture ? picture : null;
+    const backdrop = this._pictureUrl(this._state(entities.contentPicture));
 
     return html`
       <div class="hero">
