@@ -7,7 +7,7 @@ import {
 } from './utils.js';
 import './editor.js';
 
-const CARD_VERSION = '0.4.5';
+const CARD_VERSION = '0.4.6';
 
 // TeddyCloud reports the playback volume the box is actually using on a 0-16
 // scale (read-only, changed by pressing the ears). The separate 0-3 scale seen
@@ -362,10 +362,13 @@ export class TeddyCard extends LitElement {
 
     const db = this._format(dbEntity);
     const levelText = this._format(levelEntity);
-    const value = hasScale ? `${level} / ${max}` : (levelText ?? db ?? '–');
-    const caption = hasScale || !levelText
-      ? localize('volume', lang)
-      : `${localize('volume', lang)}${db ? ` · ${db}` : ''}`;
+
+    // The level sensor only reports after the box has talked to TeddyCloud, so
+    // fall back to dB and finally to an explicit "unknown" instead of a dash.
+    const value = hasScale
+      ? `${level} / ${max}`
+      : (levelText ?? db ?? localize('unknown', lang));
+    const showDb = db && value !== db;
 
     const icon = ratio === null
       ? 'mdi:volume-medium'
@@ -378,8 +381,8 @@ export class TeddyCard extends LitElement {
       <div class="stat" @click=${() => this._showMoreInfo(entities.volumeLevel || entities.volumeDb)}>
         <ha-icon icon="${icon}"></ha-icon>
         <div class="stat-body">
-          <span class="stat-value">${value}${hasScale && db ? html` <em>${db}</em>` : ''}</span>
-          <span class="stat-caption">${caption}</span>
+          <span class="stat-value">${value}${showDb ? html` <em>${db}</em>` : ''}</span>
+          <span class="stat-caption">${localize('volume', lang)}</span>
         </div>
         ${hasScale && steps <= 12 ? html`
           <div class="steps">
