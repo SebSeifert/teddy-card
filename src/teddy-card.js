@@ -7,7 +7,7 @@ import {
 } from './utils.js';
 import './editor.js';
 
-const CARD_VERSION = '0.4.4';
+const CARD_VERSION = '0.4.5';
 
 // TeddyCloud reports the playback volume the box is actually using on a 0-16
 // scale (read-only, changed by pressing the ears). The separate 0-3 scale seen
@@ -173,10 +173,10 @@ export class TeddyCard extends LitElement {
   /**
    * Candidate URLs for the cover, best first.
    *
-   * For `image` entities the `entity_picture` attribute can lag behind (or be a
-   * small thumbnail supplied by the integration), while the entity's actual
-   * content is served by the image proxy. The entity state is the last-updated
-   * timestamp and doubles as the cache buster.
+   * `entity_picture` is the authenticated URL (it carries the access token),
+   * but browsers happily keep serving the previous tonie from cache. The entity
+   * state is the last-updated timestamp, so appending it as an extra query
+   * parameter forces a refetch whenever the content changes.
    */
   _pictureUrls(entity) {
     if (!entity) {
@@ -184,11 +184,18 @@ export class TeddyCard extends LitElement {
     }
 
     const urls = [];
-    if (entity.entity_id?.startsWith('image.')) {
-      urls.push(`/api/image_proxy/${entity.entity_id}?state=${encodeURIComponent(entity.state || '')}`);
+    const picture = entity.attributes?.entity_picture;
+
+    if (picture) {
+      if (entity.state) {
+        const separator = picture.includes('?') ? '&' : '?';
+        urls.push(`${picture}${separator}c=${encodeURIComponent(entity.state)}`);
+      }
+      urls.push(picture);
     }
-    if (entity.attributes?.entity_picture) {
-      urls.push(entity.attributes.entity_picture);
+
+    if (entity.entity_id?.startsWith('image.')) {
+      urls.push(`/api/image_proxy/${entity.entity_id}`);
     }
 
     return urls.filter((url, index) => urls.indexOf(url) === index);
